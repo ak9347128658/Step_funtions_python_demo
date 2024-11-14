@@ -1,0 +1,15 @@
+{
+  "StartAt": "StepOne",
+  "States": {
+    "StepOne": {
+      "Type": "Task",
+      "Resource": "${StepFunctiononeArn}",
+      "Next": "Step Two"
+    },
+    "Step Two": {
+      "Type": "Task",
+      "Resource": "${StepFunctiontwoArn}",
+      "End": true
+    }
+  }
+}

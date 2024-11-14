@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  A template for deploying a Flask application to AWS Lambda using aws-lambda-wsgi.
+
+Globals:
+  Api:
+    Cors:
+      AllowMethods: "'*'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+  Function:
+    Timeout: 300
+    MemorySize: 128
+    Runtime: python3.9
+    Tracing: Active
+
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+
+Resources:
+  ApiDeployment:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Stage
+
+  TestApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: test_apis/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          STATE_MACHINE_ARN: !GetAtt DemoStepsFunctionStateMachine.Arn
+      Architectures:
+        - x86_64
+      Events:
+        startfunctionApi:
+          Type: Api
+          Properties:
+            Path: /start-functions
+            Method: get
+            RestApiId: !Ref ApiDeployment
+
+  DemoStepsFunctionStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: statemachine/demo_state_machine.asl.json
+      DefinitionSubstitutions:
+        StepFunctiononeArn: !GetAtt StepOneFunction.Arn
+        StepFunctiontwoArn: !GetAtt StepTwoFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref StepOneFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref StepTwoFunction
+        - Statement:
+            Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource:
+              - !GetAtt StepOneFunction.Arn
+              - !GetAtt StepTwoFunction.Arn
+
+  StepOneFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/step_one/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+
+  StepTwoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/step_two/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Architectures:
+        - x86_64

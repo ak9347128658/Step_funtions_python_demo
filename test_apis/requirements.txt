@@ -1,0 +1,7 @@
+requests
+Werkzeug==2.0.2
+markupsafe==2.0.1
+boto3==1.33.8
+flask_lambda
+flask
+flask_cors
